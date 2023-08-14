@@ -1,0 +1,6 @@
+gradio
+gdown
+pandas
+numpy
+scikit-learn
+tabulate
