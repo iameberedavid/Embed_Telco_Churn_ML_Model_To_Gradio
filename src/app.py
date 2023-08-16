@@ -11,20 +11,44 @@ expected_inputs = ['Gender', 'Senior_Citizen', 'Partner', 'Dependent', 'PhoneSer
                    'InternetService', 'OnlineSecurity', 'OnlineBackup', 'StreamingMovies', 'Contract',
                    'PaperlessBilling', 'PaymentMethod', 'tenure', 'MonthlyCharges', 'TotalCharges']
 
-# Useful functions
-def load_ml_components(file_path = r"src\assets\ml"):
-    """_summary_
-    Args:
-        file_path (reg, optional): _description_
-
-    Returns:
-    """
-    with open(file_path, "rb") as file:
+# Function to load Machine Learning components
+def load_ml_components(file_path):
+    # Load the ML component to re-use in the app
+    with open(file_path, 'rb') as file:
         loaded_ml_components = pickle.load(file)
     return loaded_ml_components
 
-# Import the ml_component
-loaded_ml_components = load_ml_components()
+# Load the ML components
+DIRPATH = os.path.dirname(os.path.realpath(__file__))
+ml_core_file_path = os.path.join(DIRPATH, 'assets', 'ml', 'ml_components.pkl')
+loaded_ml_components = load_ml_components(file_path = ml_core_file_path)
+
+# Define the variable for each component
+encoder = loaded_ml_components['encoder']
+scaler = loaded_ml_components['scaler']
+model = loaded_ml_components['best model']
+
+def predict_churn(*args, encoder=encoder, scaler=scaler, model=model):
+
+    input_data = pd.DataFrame([args], columns = expected_inputs)
+
+    # Encode the data
+    num_col = ['Senior_Citizen', 'tenure', 'MonthlyCharges', 'TotalCharges']
+    cat_col = ['Gender', 'Senior_Citizen', 'Partner', 'Dependent', 'PhoneService', 'MultipleLines',
+                   'InternetService', 'OnlineSecurity', 'OnlineBackup', 'StreamingMovies', 'Contract',
+                   'PaperlessBilling', 'PaymentMethod']
+    cat_col = cat_col.astype(str)
+    encoded_data = encoder.transform(cat_col)
+    encoded_df = pd.concat([num_col, encoded_data], axis=1)
+
+    # Impute missing values
+    # imputed_df = imputer.transform(encoded_df)
+
+    # Scale the data
+
+
+
+
 
 # Import the model
 model = AdaBoostClassifier()
