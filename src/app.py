@@ -7,8 +7,9 @@ import os
 from sklearn.ensemble import AdaBoostClassifier
 
 # Create key lists
-expected_inputs = ['Gender', 'Senior_Citizen', 'Partner', 'Dependent', 'PhoneService', 'MultipleLines',
-                   'InternetService', 'OnlineSecurity', 'OnlineBackup', 'StreamingMovies', 'Contract',
+expected_inputs = ['gender', 'SeniorCitizen', 'Partner', 'Dependent', 'PhoneService', 'MultipleLines', 
+                   'InternetService', 'OnlineSecurity', 'OnlineBackup', 'DeviceProtection',
+                   'TechSupport', 'StreamingTV', 'StreamingMovies', 'Contract',
                    'PaperlessBilling', 'PaymentMethod', 'tenure', 'MonthlyCharges', 'TotalCharges']
 
 # Function to load Machine Learning components
@@ -33,10 +34,12 @@ def predict_churn(*args, encoder=encoder, scaler=scaler, model=model):
     input_data = pd.DataFrame([args], columns = expected_inputs)
 
     # Encode the data
-    num_col = ['Senior_Citizen', 'tenure', 'MonthlyCharges', 'TotalCharges']
-    cat_col = ['Gender', 'Senior_Citizen', 'Partner', 'Dependent', 'PhoneService', 'MultipleLines',
-                   'InternetService', 'OnlineSecurity', 'OnlineBackup', 'StreamingMovies', 'Contract',
-                   'PaperlessBilling', 'PaymentMethod']
+    num_col = ['tenure', 'MonthlyCharges', 'TotalCharges']
+    cat_col = ['gender', 'SeniorCitizen', 'Partner', 'Dependent', 'PhoneService', 'MultipleLines',
+               'InternetService', 'OnlineSecurity', 'OnlineBackup', 'DeviceProtection',
+               'TechSupport', 'StreamingTV','StreamingMovies', 'Contract',
+               'PaperlessBilling', 'PaymentMethod']
+    
     cat_col = cat_col.astype(str)
     encoded_data = encoder.transform(cat_col)
     encoded_df = pd.concat([num_col, encoded_data], axis=1)
@@ -45,60 +48,44 @@ def predict_churn(*args, encoder=encoder, scaler=scaler, model=model):
     # imputed_df = imputer.transform(encoded_df)
 
     # Scale the data
+    scaled_df = scaler.transform(encoded_df)
 
+    # Prediction
+    model_output = model.predict_proba(scaled_df)
 
+    # Probability of Churn (positive class)
+    prob_churn = float(model_output[0][1])
 
+    # Probability of Not churn (negative class)
+    prob_not_churn = 1 - prob_churn
+    return{'Prediction Churn': prob_churn,
+           'Prediction Not Churn': prob_not_churn}
 
+# Define the inputs
+gender = gr.Radio(choices=['Male', 'Female'], label='Gender')
+SeniorCitizen = gr.Radio(choices=['Yes', 'No'], label='SeniorCitizen')
+Partner = gr.Radio(choices=['Yes', 'No'], label='Partner')
+Dependent = gr.Radio(choices=['Yes', 'No'], label='Dependent')
+PhoneService = gr.Radio(choices=['Yes', 'No'], label='PhoneService')
+MultipleLines = gr.Radio(choices=['Yes', 'No'], label='MultipleLines')
+InternetService = gr.Radio(choices=['Fiber optic', 'No', 'DSL'], label='InternetService')
+OnlineSecurity = gr.Radio(choices=['Yes', 'No'], label='OnlineSecurity')
+OnlineBackup = gr.Radio(choices=['Yes', 'No'], label='OnlineBackup')
+DeviceProtection = gr.Radio(choices=['Yes', 'No'], label='viceProtection')
+TechSupport = gr.Radio(choices=['Yes', 'No'], label='TechSupport')
+StreamingTV = gr.Radio(choices=['Yes', 'No'], label='StreamingTV')
+StreamingMovies = gr.Radio(choices=['Yes', 'No'], label='StreamingMovies')
+Contract = gr.Radio(choices=['Month-to-month', 'One year', 'Two years'], label='Contract')
+PaperlessBilling = gr.Radio(choices=['Yes', 'No'], label='PaperlessBilling')
+PaymentMethod = gr.Radio(choices=['Electronic check', 'Mailed check', 'Credit card (automatic)', 'Bank transfer (automatic)'], label='PaymentMethod')
+tenure = gr.Number(label='Tenure')
+MonthlyCharges = gr.Number(label='MonthlyCharges')
+TotalCharges = gr.Number(label='TotalCharges')
 
-# Import the model
-model = AdaBoostClassifier()
-model.load_model()
-
-# Function to process inputs and return prediction
-# Inputs
-Gender = 
-Senior_Citizen =
-Partner = 
-Dependent = 
-PhoneService = 
-MultipleLines = 
-InternetService = 
-OnlineSecurity = 
-OnlineBackup = 
-StreamingMovies = 
-Contract = 
-PaperlessBilling = 
-PaymentMethod = 
-tenure = 
-MonthlyCharges = 
-TotalCharges = 
-
-
-def interface_function(*args):
-"""
-"""
-
-# SETUP
-# Variables and Constants
-DIRPATH = os.path.dirname(os.path.realpath(__file__))
-ml_core_fp = os.path.join(DIRPATH, "assets", "ml", "ml_components.pkl")
-
-# Execution
-ml_components_dict = load_ml_components(fp=ml_core_fp)
-end2end_pipeline = ml_components_dict('pipeline')
-
-print(f"\n[Info] ML components loaded: {list(ml_components_dict.keys())}")
-
-# Interface
-inputs = [gr.Dropdown(elem_id=i) for in range (17)] + [gr.Number(elem_id=i)
-                                                       for i in range(4)]
-
-demo = gr.Interface(
-    interface_function,
-    ['text'],
-    "number",
-    examples=[],
-)
-
-if __name__ == "__main__":
-    demo.launch(debug=True)
+# Design the interface
+gr.Interface(inputs=expected_inputs,
+    outputs=gr.Label('Awaiting Submission...'),
+    fn=predict_churn,
+    title='Telco Churn Prediction',
+    description='This app predicts whether a Telco customer will churn or not'
+).launch(inbrowser=True, show_error=True, share=True)
