@@ -13,21 +13,21 @@ expected_inputs = ['gender', 'SeniorCitizen', 'Partner', 'Dependent', 'PhoneServ
                    'PaperlessBilling', 'PaymentMethod', 'tenure', 'MonthlyCharges', 'TotalCharges']
 
 # Function to load Machine Learning components
-def load_ml_components(file_path):
+def load_ml_components(fp):
     # Load the ML component to re-use in the app
-    with open(file_path, 'rb') as file:
-        loaded_ml_components = pickle.load(file)
+    with open(fp, "rb") as f:
+        loaded_ml_components = pickle.load(f)
     return loaded_ml_components
 
 # Load the ML components
 DIRPATH = os.path.dirname(os.path.realpath(__file__))
-ml_core_file_path = os.path.join(DIRPATH, 'assets', 'ml', 'ml_components.pkl')
-loaded_ml_components = load_ml_components(file_path = ml_core_file_path)
+ml_core_fp = os.path.join(DIRPATH, 'ml.pkl')
+loaded_ml_components = load_ml_components(fp = ml_core_fp)
 
 # Define the variable for each component
 encoder = loaded_ml_components['encoder']
 scaler = loaded_ml_components['scaler']
-model = loaded_ml_components['best model']
+model = loaded_ml_components['model']
 
 def predict_churn(*args, encoder=encoder, scaler=scaler, model=model):
 
@@ -71,7 +71,7 @@ MultipleLines = gr.Radio(choices=['Yes', 'No'], label='MultipleLines')
 InternetService = gr.Radio(choices=['Fiber optic', 'No', 'DSL'], label='InternetService')
 OnlineSecurity = gr.Radio(choices=['Yes', 'No'], label='OnlineSecurity')
 OnlineBackup = gr.Radio(choices=['Yes', 'No'], label='OnlineBackup')
-DeviceProtection = gr.Radio(choices=['Yes', 'No'], label='viceProtection')
+DeviceProtection = gr.Radio(choices=['Yes', 'No'], label='DeviceProtection')
 TechSupport = gr.Radio(choices=['Yes', 'No'], label='TechSupport')
 StreamingTV = gr.Radio(choices=['Yes', 'No'], label='StreamingTV')
 StreamingMovies = gr.Radio(choices=['Yes', 'No'], label='StreamingMovies')
@@ -83,7 +83,10 @@ MonthlyCharges = gr.Number(label='MonthlyCharges')
 TotalCharges = gr.Number(label='TotalCharges')
 
 # Design the interface
-gr.Interface(inputs=expected_inputs,
+gr.Interface(inputs=['gender', 'SeniorCitizen', 'Partner', 'Dependent', 'PhoneService', 'MultipleLines', 
+                   'InternetService', 'OnlineSecurity', 'OnlineBackup', 'DeviceProtection',
+                   'TechSupport', 'StreamingTV', 'StreamingMovies', 'Contract',
+                   'PaperlessBilling', 'PaymentMethod', 'tenure', 'MonthlyCharges', 'TotalCharges'],
     outputs=gr.Label('Awaiting Submission...'),
     fn=predict_churn,
     title='Telco Churn Prediction',
