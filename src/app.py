@@ -5,67 +5,69 @@ import numpy as np
 import pickle
 import os
 from sklearn.ensemble import AdaBoostClassifier
+from sklearn.impute import SimpleImputer
 
-# Create key lists
-expected_inputs = ['gender', 'SeniorCitizen', 'Partner', 'Dependent', 'PhoneService', 'MultipleLines', 
-                   'InternetService', 'OnlineSecurity', 'OnlineBackup', 'DeviceProtection',
-                   'TechSupport', 'StreamingTV', 'StreamingMovies', 'Contract',
-                   'PaperlessBilling', 'PaymentMethod', 'tenure', 'MonthlyCharges', 'TotalCharges']
-
-# Function to load Machine Learning components
-def load_ml_components(fp):
-    # Load the ML component to re-use in the app
-    with open(fp, "rb") as f:
-        loaded_ml_components = pickle.load(f)
-    return loaded_ml_components
-
-# Load the ML components
-DIRPATH = os.path.dirname(os.path.realpath(__file__))
-ml_core_fp = os.path.join(DIRPATH, 'ml.pkl')
-loaded_ml_components = load_ml_components(fp = ml_core_fp)
-
-# Define the variable for each component
-encoder = loaded_ml_components['encoder']
-scaler = loaded_ml_components['scaler']
-model = loaded_ml_components['model']
-
-def predict_churn(*args, encoder=encoder, scaler=scaler, model=model):
-
-    input_data = pd.DataFrame([args], columns = expected_inputs)
-
-    # Encode the data
-    num_col = ['tenure', 'MonthlyCharges', 'TotalCharges']
-    cat_col = ['gender', 'SeniorCitizen', 'Partner', 'Dependent', 'PhoneService', 'MultipleLines',
-               'InternetService', 'OnlineSecurity', 'OnlineBackup', 'DeviceProtection',
-               'TechSupport', 'StreamingTV','StreamingMovies', 'Contract',
-               'PaperlessBilling', 'PaymentMethod']
+def predict_churn(gender, SeniorCitizen, Partner, Dependents, PhoneService, MultipleLines,
+                  InternetService, OnlineSecurity, OnlineBackup, DeviceProtection, TechSupport,
+                  StreamingTV, StreamingMovies, Contract, PaperlessBilling, PaymentMethod,
+                  tenure, MonthlyCharges, TotalCharges):
     
-    cat_col = cat_col.astype(str)
-    encoded_data = encoder.transform(cat_col)
-    encoded_df = pd.concat([num_col, encoded_data], axis=1)
+    # Function to load Machine Learning components
+    def load_ml_components(fp):
+    # Load the ML component to re-use in the app
+        with open(fp, "rb") as f:
+            loaded_ml_components = pickle.load(f)
+        return loaded_ml_components
 
-    # Impute missing values
-    # imputed_df = imputer.transform(encoded_df)
+    # Load the ML components
+    DIRPATH = os.path.dirname(os.path.realpath(__file__))
+    ml_core_fp = os.path.join(DIRPATH, 'ml.pkl')
+    loaded_ml_components = load_ml_components(fp = ml_core_fp)
 
-    # Scale the data
-    scaled_df = scaler.transform(encoded_df)
+    # Define the variable for each component
+    encoder = loaded_ml_components['encoder']
+    scaler = loaded_ml_components['scaler']
+    model = loaded_ml_components['model']
 
-    # Prediction
-    model_output = model.predict_proba(scaled_df)
+    # Create a list of categorical features
+    cat_features = [gender, SeniorCitizen, Partner, Dependents, PhoneService, MultipleLines, InternetService,
+                    OnlineSecurity, OnlineBackup, DeviceProtection, TechSupport, StreamingTV, StreamingMovies,
+                    Contract, PaperlessBilling, PaymentMethod]
+    
+    # Create a list of categorical feature names
+    cat_feature_names = ['gender', 'SeniorCitizen', 'Partner', 'Dependents', 'PhoneService', 'MultipleLines',
+                         'InternetService', 'OnlineSecurity', 'OnlineBackup', 'DeviceProtection', 'TechSupport',
+                         'StreamingTV', 'StreamingMovies', 'Contract', 'PaperlessBilling', 'PaymentMethod']
+    
+    # Create a DataFrame with the categorical features
+    cat_df = pd.DataFrame([cat_features], columns=cat_feature_names)
+    
+    # Fit the imputer with the categorical features
+    imputer = SimpleImputer(strategy='most_frequent')
+    imputer.fit(cat_df)
+    
+    # Impute missing values in categorical features
+    imputed_cat_df = pd.DataFrame(imputer.transform(cat_df), columns=cat_feature_names)
 
-    # Probability of Churn (positive class)
+    # Encode the imputed categorical features
+    encoded_data = encoder.transform(imputed_cat_df)
+    
+    num_data = np.array([[tenure, MonthlyCharges, TotalCharges]])
+    scaled_num_data = scaler.transform(num_data)
+    
+    combined_data = np.hstack((encoded_data, scaled_num_data))
+    
+    # Make prediction using the fitted model
+    model_output = model.predict_proba(combined_data)
     prob_churn = float(model_output[0][1])
-
-    # Probability of Not churn (negative class)
     prob_not_churn = 1 - prob_churn
-    return{'Prediction Churn': prob_churn,
-           'Prediction Not Churn': prob_not_churn}
+    return {'Prediction Churn': prob_churn, 'Prediction Not Churn': prob_not_churn}
 
 # Define the inputs
 gender = gr.Radio(choices=['Male', 'Female'], label='Gender')
 SeniorCitizen = gr.Radio(choices=['Yes', 'No'], label='SeniorCitizen')
 Partner = gr.Radio(choices=['Yes', 'No'], label='Partner')
-Dependent = gr.Radio(choices=['Yes', 'No'], label='Dependent')
+Dependents = gr.Radio(choices=['Yes', 'No'], label='Dependents')
 PhoneService = gr.Radio(choices=['Yes', 'No'], label='PhoneService')
 MultipleLines = gr.Radio(choices=['Yes', 'No'], label='MultipleLines')
 InternetService = gr.Radio(choices=['Fiber optic', 'No', 'DSL'], label='InternetService')
@@ -83,12 +85,12 @@ MonthlyCharges = gr.Number(label='MonthlyCharges')
 TotalCharges = gr.Number(label='TotalCharges')
 
 # Design the interface
-gr.Interface(inputs=['gender', 'SeniorCitizen', 'Partner', 'Dependent', 'PhoneService', 'MultipleLines', 
-                   'InternetService', 'OnlineSecurity', 'OnlineBackup', 'DeviceProtection',
-                   'TechSupport', 'StreamingTV', 'StreamingMovies', 'Contract',
-                   'PaperlessBilling', 'PaymentMethod', 'tenure', 'MonthlyCharges', 'TotalCharges'],
+gr.Interface(inputs=[gender, SeniorCitizen, Partner, Dependents, PhoneService, MultipleLines,
+                     InternetService, OnlineSecurity, OnlineBackup, DeviceProtection, TechSupport,
+                     StreamingTV, StreamingMovies, Contract, PaperlessBilling, PaymentMethod,
+                     tenure, MonthlyCharges, TotalCharges],
     outputs=gr.Label('Awaiting Submission...'),
     fn=predict_churn,
     title='Telco Churn Prediction',
-    description='This app predicts whether a Telco customer will churn or not'
+    description='This app predicts whether a Telco customer will churn or not based on previous churn data.'
 ).launch(inbrowser=True, show_error=True, share=True)
