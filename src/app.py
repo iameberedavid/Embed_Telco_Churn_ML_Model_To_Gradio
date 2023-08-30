@@ -4,28 +4,20 @@ import pandas as pd
 import numpy as np
 import pickle
 import os
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.impute import SimpleImputer
 
 def predict_churn(gender, SeniorCitizen, Partner, Dependents, PhoneService, MultipleLines,
                   InternetService, OnlineSecurity, OnlineBackup, DeviceProtection, TechSupport,
                   StreamingTV, StreamingMovies, Contract, PaperlessBilling, PaymentMethod,
                   tenure, MonthlyCharges, TotalCharges):
     
-    # Function to load Machine Learning components
-    def load_ml_components(fp):
-    # Load the ML component to re-use in the app
-        with open(fp, "rb") as f:
-            loaded_ml_components = pickle.load(f)
-        return loaded_ml_components
-
     # Load the ML components
     DIRPATH = os.path.dirname(os.path.realpath(__file__))
     ml_core_fp = os.path.join(DIRPATH, 'ml_components.pkl')
-    loaded_model_components = load_ml_components(fp = ml_core_fp)
-
-    # Extract the best model and other components
-    best_model = loaded_model_components['model']
+    with open(ml_core_fp, "rb") as f:
+        loaded_model_components = pickle.load(f)
+    
+    # Extract the ML components
+    model = loaded_model_components['model']
     encoder = loaded_model_components['encoder']
     scaler = loaded_model_components['scaler']
 
@@ -34,23 +26,8 @@ def predict_churn(gender, SeniorCitizen, Partner, Dependents, PhoneService, Mult
                     OnlineSecurity, OnlineBackup, DeviceProtection, TechSupport, StreamingTV, StreamingMovies,
                     Contract, PaperlessBilling, PaymentMethod]
     
-    # Create a list of categorical feature names
-    cat_feature_names = ['gender', 'SeniorCitizen', 'Partner', 'Dependents', 'PhoneService', 'MultipleLines',
-                         'InternetService', 'OnlineSecurity', 'OnlineBackup', 'DeviceProtection', 'TechSupport',
-                         'StreamingTV', 'StreamingMovies', 'Contract', 'PaperlessBilling', 'PaymentMethod']
-    
-    # Create a DataFrame with the categorical features
-    cat_df = pd.DataFrame([cat_features], columns=cat_feature_names)
-    
-    # Fit the imputer with the categorical features
-    imputer = SimpleImputer(strategy='most_frequent')
-    imputer.fit(cat_df)
-    
-    # Impute missing values in categorical features
-    imputed_cat_df = pd.DataFrame(imputer.transform(cat_df), columns=cat_feature_names)
-
-    # Encode the imputed categorical features
-    encoded_data = encoder.transform(imputed_cat_df)
+    # Encode the categorical features
+    encoded_data = encoder.transform([cat_features])
     
     num_data = np.array([[tenure, MonthlyCharges, TotalCharges]])
     scaled_num_data = scaler.transform(num_data)
@@ -58,7 +35,7 @@ def predict_churn(gender, SeniorCitizen, Partner, Dependents, PhoneService, Mult
     combined_data = np.hstack((encoded_data, scaled_num_data))
     
     # Make prediction using the fitted model
-    model_output = best_model.predict_proba(combined_data)
+    model_output = model.predict_proba(combined_data)
     prob_churn = float(model_output[0][1])
     return {'Churn Probability': prob_churn}
 
