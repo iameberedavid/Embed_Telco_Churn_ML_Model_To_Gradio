@@ -21,13 +21,13 @@ def predict_churn(gender, SeniorCitizen, Partner, Dependents, PhoneService, Mult
 
     # Load the ML components
     DIRPATH = os.path.dirname(os.path.realpath(__file__))
-    ml_core_fp = os.path.join(DIRPATH, 'ml.pkl')
-    loaded_ml_components = load_ml_components(fp = ml_core_fp)
+    ml_core_fp = os.path.join(DIRPATH, 'ml_components.pkl')
+    loaded_model_components = load_ml_components(fp = ml_core_fp)
 
-    # Define the variable for each component
-    encoder = loaded_ml_components['encoder']
-    scaler = loaded_ml_components['scaler']
-    model = loaded_ml_components['model']
+    # Extract the best model and other components
+    best_model = loaded_model_components['model']
+    encoder = loaded_model_components['encoder']
+    scaler = loaded_model_components['scaler']
 
     # Create a list of categorical features
     cat_features = [gender, SeniorCitizen, Partner, Dependents, PhoneService, MultipleLines, InternetService,
@@ -58,10 +58,9 @@ def predict_churn(gender, SeniorCitizen, Partner, Dependents, PhoneService, Mult
     combined_data = np.hstack((encoded_data, scaled_num_data))
     
     # Make prediction using the fitted model
-    model_output = model.predict_proba(combined_data)
+    model_output = best_model.predict_proba(combined_data)
     prob_churn = float(model_output[0][1])
-    prob_not_churn = 1 - prob_churn
-    return {'Prediction Churn': prob_churn, 'Prediction Not Churn': prob_not_churn}
+    return {'Churn Probability': prob_churn}
 
 # Define the inputs
 gender = gr.Radio(choices=['Male', 'Female'], label='Gender')
@@ -77,7 +76,7 @@ DeviceProtection = gr.Radio(choices=['Yes', 'No'], label='DeviceProtection')
 TechSupport = gr.Radio(choices=['Yes', 'No'], label='TechSupport')
 StreamingTV = gr.Radio(choices=['Yes', 'No'], label='StreamingTV')
 StreamingMovies = gr.Radio(choices=['Yes', 'No'], label='StreamingMovies')
-Contract = gr.Radio(choices=['Month-to-month', 'One year', 'Two years'], label='Contract')
+Contract = gr.Radio(choices=['Month-to-month', 'One year', 'Two year'], label='Contract')
 PaperlessBilling = gr.Radio(choices=['Yes', 'No'], label='PaperlessBilling')
 PaymentMethod = gr.Radio(choices=['Electronic check', 'Mailed check', 'Credit card (automatic)', 'Bank transfer (automatic)'], label='PaymentMethod')
 tenure = gr.Number(label='Tenure')
