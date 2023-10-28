@@ -25,7 +25,7 @@ def predict_churn(gender, SeniorCitizen, Partner, Dependents, PhoneService, Mult
     cat_features = [gender, SeniorCitizen, Partner, Dependents, PhoneService, MultipleLines, InternetService,
                     OnlineSecurity, OnlineBackup, DeviceProtection, TechSupport, StreamingTV, StreamingMovies,
                     Contract, PaperlessBilling, PaymentMethod]
-    
+
     # Encode the categorical features
     encoded_data = encoder.transform([cat_features])
     
